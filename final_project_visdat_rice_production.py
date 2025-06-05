@@ -38,8 +38,8 @@ p = figure(
     title=f"{selected_var} Trends for all Provinces",
     x_axis_label='Year',
     y_axis_label=selected_var,
-    width=900,
-    height=500,
+    width=1500,
+    height=1000,
     tools="pan,wheel_zoom,reset,save"
 )
 
