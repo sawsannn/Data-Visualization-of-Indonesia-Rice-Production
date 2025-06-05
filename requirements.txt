@@ -2,3 +2,4 @@ streamlit
 bokeh==2.4.3
 pandas
 geopandas
+numpy<1.24
