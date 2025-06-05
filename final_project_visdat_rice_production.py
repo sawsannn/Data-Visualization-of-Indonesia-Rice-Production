@@ -43,7 +43,7 @@ p = figure(
     y_axis_label='Value',
     plot_width=800,
     plot_height=500,
-    tools="pan,wheel_zoom,box_zoom,reset,save"
+    tools="pan,wheel_zoom,reset,save"  # Removed box_zoom
 )
 
 # Add hover tool with all variables
