@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 from bokeh.plotting import figure
 from bokeh.models import HoverTool, ColumnDataSource
-from bokeh.palettes import Category10
+from bokeh.palettes import Category10, Category20
 from bokeh.models import NumeralTickFormatter
 from streamlit_bokeh import streamlit_bokeh
 
@@ -19,50 +19,51 @@ data.rename(columns={
     'Luas Panen': 'luas_panen'
 }, inplace=True)
 
-# Variables to plot
+# Variables for dropdown
 variables = ['Produksi', 'luas_panen', 'curah_hujan', 'Kelembapan', 'suhu_rata']
-colors = Category10[len(variables)]
 
-# Province list for dropdown
+# Provinces list for lines
 prov_list = data['Provinsi'].unique().tolist()
 
-st.title("Indonesia Rice Production - Interactive Line Plot")
+st.title("Indonesia Rice Production - Province Trends by Variable")
 
-# Dropdown to select province
-province = st.selectbox("Select Province:", prov_list)
+# Dropdown to select one variable to plot
+selected_var = st.selectbox("Select Variable:", variables)
 
-# Filter data for chosen province & reset index so 'Tahun' is column
-df_prov = data[data['Provinsi'] == province].reset_index()
+# Choose a palette big enough for provinces
+palette = Category20[20] if len(prov_list) <= 20 else Category10[10]
 
-# Prepare data for Bokeh
-source = ColumnDataSource(df_prov)
-
-# Create Bokeh figure
+# Create figure
 p = figure(
-    title=f"Yearly Trends for {province}",
+    title=f"{selected_var} Trends for all Provinces",
     x_axis_label='Year',
-    y_axis_label='Value',
-    width=800,
+    y_axis_label=selected_var,
+    width=900,
     height=500,
     tools="pan,wheel_zoom,reset,save"
 )
 
-# Format y-axis numbers with commas instead of scientific notation
+# Format y-axis numbers with commas
 p.yaxis.formatter = NumeralTickFormatter(format="0,0")
 
-# Add hover tool with all variables
-tooltips = [("Year", "@Tahun")]
-tooltips += [(var, f"@{{{var}}}") for var in variables]
-hover = HoverTool(tooltips=tooltips)
+# Add hover tool
+hover = HoverTool(tooltips=[("Year", "@x"), ("Province", "@provinsi"), (selected_var, "@y")])
 p.add_tools(hover)
 
-# Plot a line and circle for each variable
-for i, var in enumerate(variables):
-    p.line('Tahun', var, source=source, line_width=2, color=colors[i], legend_label=var)
-    p.circle('Tahun', var, source=source, fill_color="white", size=6, color=colors[i])
+# Plot each province's line
+for i, prov in enumerate(prov_list):
+    df_prov = data[data['Provinsi'] == prov].reset_index()
+    source = ColumnDataSource(data={
+        'x': df_prov['Tahun'],
+        'y': df_prov[selected_var],
+        'provinsi': [prov] * len(df_prov)
+    })
+    color = palette[i % len(palette)]
+    p.line('x', 'y', source=source, line_width=2, color=color, legend_label=prov)
+    p.circle('x', 'y', source=source, size=6, color=color, fill_color="white")
 
 p.legend.location = "top_left"
 p.legend.click_policy = "hide"
 
-# Display plot in Streamlit using streamlit_bokeh
+# Display plot
 streamlit_bokeh(p, use_container_width=True)
