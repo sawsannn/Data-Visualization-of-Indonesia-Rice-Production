@@ -1,128 +1,57 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 from bokeh.plotting import figure
-from bokeh.models import HoverTool, ColumnDataSource, CategoricalColorMapper, Legend, LegendItem
-import geopandas as gpd
-from streamlit_bokeh import streamlit_bokeh
+from bokeh.models import HoverTool, ColumnDataSource
+from bokeh.embed import components
 
-# Load CSV data and set 'Tahun' as index
-data = pd.read_csv(
-    'https://github.com/sawsannn/Data-Visualization-of-Indonesia-Rice-Production/blob/main/Data_Tanaman_Padi_Sumatera_version_1.csv?raw=true'
-)
-data.set_index('Tahun', inplace=True)
+# Load your data (replace this with your actual data loading)
+data = pd.read_csv("https://github.com/sawsannn/Data-Visualization-of-Indonesia-Rice-Production/blob/main/Data_Tanaman_Padi_Sumatera_version_1.csv?raw=true")  # or your DataFrame
 
-# Unique provinces for color mapping
-prov_list = data.Provinsi.unique().tolist()
+# Streamlit sidebar widgets
+selected_year = st.sidebar.slider("Select Year", int(data['Tahun'].min()), int(data['Tahun'].max()), int(data['Tahun'].min()))
+selected_province = st.sidebar.selectbox("Select Province", data['Provinsi'].unique())
 
-# Color palette and mapper
-custom_palette = [
-    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
-]
-color_mapper = CategoricalColorMapper(factors=prov_list, palette=custom_palette)
+# Filter data for scatter plot
+scatter_data = data[data['Tahun'] == selected_year]
 
-# Rename columns for easier reference
-data.rename(columns={
-    'Suhu rata-rata': 'suhu_rata',
-    'Curah hujan': 'curah_hujan',
-    'Luas Panen': 'luas_panen'
-}, inplace=True)
+# Scatter plot: Luas Panen vs Produksi for selected year
+source_scatter = ColumnDataSource(scatter_data)
 
-# Streamlit header
-st.title("Indonesia Rice Production Visualizations")
+scatter_plot = figure(title=f"Scatter Plot for Year {selected_year}",
+                      x_axis_label="Luas Panen",
+                      y_axis_label="Produksi",
+                      tools="pan,wheel_zoom,box_zoom,reset,hover")
 
-# --- Scatter Plot ---
-
-def get_source(year, x_col, y_col):
-    df = data.loc[year]
-    return ColumnDataSource(data={
-        'x': df[x_col],
-        'y': df[y_col],
-        'provinsi': df['Provinsi']
-    })
-
-# Widgets
-st.header("Scatter Plot Controls")
-year = st.slider('Year', min_value=1993, max_value=2020, value=1993, step=1)
-x_axis = st.selectbox('X-axis data', ['Produksi', 'luas_panen', 'curah_hujan', 'Kelembapan', 'suhu_rata'], index=0)
-y_axis = st.selectbox('Y-axis data', ['Produksi', 'luas_panen', 'curah_hujan', 'Kelembapan', 'suhu_rata'], index=1)
-
-source = get_source(year, x_axis, y_axis)
-
-scatter_plot = figure(
-    title=f'Year: {year}',
-    x_axis_label=x_axis,
-    y_axis_label=y_axis,
-    height=400,
-    width=700,
-    tools="pan,wheel_zoom,reset,hover"
-)
+scatter_plot.circle('Luas Panen', 'Produksi', source=source_scatter, size=7, color='navy', alpha=0.6)
 
 hover = scatter_plot.select_one(HoverTool)
-hover.tooltips = [("Provinsi", "@provinsi"), (x_axis, "@x"), (y_axis, "@y")]
+hover.tooltips = [("Provinsi", "@Provinsi"), ("Produksi", "@Produksi"), ("Luas Panen", "@{Luas Panen}")]
 
-renderers = []
-legend_items = []
+# Filter data for line plot
+line_data = data[data['Provinsi'] == selected_province].sort_values('Tahun')
+source_line = ColumnDataSource(line_data)
 
-for prov, color in zip(prov_list, custom_palette):
-    mask = [p == prov for p in source.data['provinsi']]
-    filtered_source = ColumnDataSource(data={
-        'x': [x for i, x in enumerate(source.data['x']) if mask[i]],
-        'y': [y for i, y in enumerate(source.data['y']) if mask[i]],
-        'provinsi': [p for i, p in enumerate(source.data['provinsi']) if mask[i]],
-    })
-    r = scatter_plot.circle(
-        'x', 'y', source=filtered_source, size=10,
-        fill_alpha=0.8, color=color
-    )
-    renderers.append(r)
-    legend_items.append(LegendItem(label=prov, renderers=[r]))
+# Line plot: Produksi over years for selected province
+line_plot = figure(title=f"Produksi Over Time - {selected_province}",
+                   x_axis_label="Year",
+                   y_axis_label="Produksi",
+                   x_range=(data['Tahun'].min(), data['Tahun'].max()),
+                   tools="pan,wheel_zoom,box_zoom,reset,hover")
 
-legend = Legend(items=legend_items, location="top_right", title="Provinsi")
-scatter_plot.add_layout(legend)
+line_plot.line('Tahun', 'Produksi', source=source_line, line_width=2, color='green')
+line_plot.circle('Tahun', 'Produksi', source=source_line, size=7, color='green', alpha=0.6)
 
-streamlit_bokeh(scatter_plot, use_container_width=True, theme="streamlit", key="scatter_plot")
+hover_line = line_plot.select_one(HoverTool)
+hover_line.tooltips = [("Year", "@Tahun"), ("Produksi", "@Produksi")]
 
-# --- Geospatial Map ---
+# Embed Bokeh plots in Streamlit
+from bokeh.embed import components
 
-st.header("Geospatial Map for Year 2020")
+scatter_script, scatter_div = components(scatter_plot)
+line_script, line_div = components(line_plot)
 
-gdf = gpd.read_file("https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia-province.geojson")
-gdf = gdf.rename(columns={'propinsi': 'Provinsi'})
-data_2020 = data.loc[2020].reset_index()
-gdf_merged = gdf.merge(data_2020, on='Provinsi', how='inner')
+st.markdown("### Scatter Plot")
+st.components.v1.html(scatter_div + scatter_script, height=400)
 
-def extract_coords(poly):
-    if poly.geom_type == 'MultiPolygon':
-        xs = [list(p.exterior.coords.xy[0]) for p in poly.geoms]
-        ys = [list(p.exterior.coords.xy[1]) for p in poly.geoms]
-    else:
-        xs = [list(poly.exterior.coords.xy[0])]
-        ys = [list(poly.exterior.coords.xy[1])]
-    return xs, ys
-
-gdf_merged['x'], gdf_merged['y'] = zip(*gdf_merged.geometry.apply(extract_coords))
-
-geo_source = ColumnDataSource(gdf_merged)
-
-geo_plot = figure(
-    title='Peta Produksi Padi per Provinsi (2020)',
-    x_axis_label='Longitude',
-    y_axis_label='Latitude',
-    plot_width=700,
-    plot_height=500,
-    tools='pan,wheel_zoom,reset,hover'
-)
-
-geo_plot.patches(
-    'x', 'y', source=geo_source,
-    fill_alpha=0.7,
-    fill_color='lightgreen',
-    line_color='black',
-    line_width=0.5
-)
-
-geo_hover = geo_plot.select_one(HoverTool)
-geo_hover.tooltips = [("Provinsi", "@Provinsi"), ("Produksi", "@Produksi")]
-
-streamlit_bokeh(geo_plot, use_container_width=True, theme="streamlit", key="geo_map")
+st.markdown("### Line Plot")
+st.components.v1.html(line_div + line_script, height=400)
