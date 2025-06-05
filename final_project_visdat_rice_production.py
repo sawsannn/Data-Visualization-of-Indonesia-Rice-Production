@@ -68,9 +68,7 @@ renderers = []
 legend_items = []
 
 for prov, color in zip(prov_list, custom_palette):
-    # Filter data for this province
-    mask = source.data['provinsi'] == prov
-    # ColumnDataSource for filtered data
+    mask = [p == prov for p in source.data['provinsi']]  # fix here
     filtered_source = ColumnDataSource(data={
         'x': [x for i, x in enumerate(source.data['x']) if mask[i]],
         'y': [y for i, y in enumerate(source.data['y']) if mask[i]],
@@ -82,6 +80,7 @@ for prov, color in zip(prov_list, custom_palette):
     )
     renderers.append(r)
     legend_items.append(LegendItem(label=prov, renderers=[r]))
+
 
 legend = Legend(items=legend_items, location="top_right", title="Provinsi")
 scatter_plot.add_layout(legend)
