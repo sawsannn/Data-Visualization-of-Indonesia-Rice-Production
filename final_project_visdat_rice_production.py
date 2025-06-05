@@ -4,6 +4,7 @@ from bokeh.plotting import figure
 from bokeh.models import HoverTool, ColumnDataSource
 from bokeh.palettes import Category10, Category20
 from bokeh.models import NumeralTickFormatter
+from bokeh.transform import factor_cmap
 from streamlit_bokeh import streamlit_bokeh
 
 # Load data and set index
@@ -31,7 +32,7 @@ palette = Category20[20] if len(prov_list) <= 20 else Category10[10]
 st.title("Indonesia Rice Production Visualization")
 
 # Create tabs
-tab1, tab2 = st.tabs(["All Provinces by Variable", "Single Province by Variable"])
+tab1, tab2, tab3 = st.tabs(["All Provinces by Variable", "Single Province by Variable", "Top 5 Provinces by Production Year"])
 
 with tab1:
     st.header("All Provinces: Select Variable to Plot")
@@ -95,3 +96,52 @@ with tab2:
     p2.legend.click_policy = "hide"
 
     streamlit_bokeh(p2, use_container_width=True, key="single_prov_plot")
+
+with tab3:
+    st.header("Top 5 Provinces by Rice Production for Selected Year")
+
+    # Year slider for tab3
+    year_min = int(data.index.min())
+    year_max = int(data.index.max())
+    selected_year = st.slider("Select Year:", min_value=year_min, max_value=year_max, value=year_min, key="top5_year")
+
+    # Filter and get top 5 provinces by production for selected year
+    df_year = data.loc[selected_year].reset_index() if selected_year in data.index else pd.DataFrame()
+    df_top5 = df_year.nlargest(5, 'Produksi') if not df_year.empty else pd.DataFrame()
+
+    if df_top5.empty:
+        st.warning("No data available for selected year.")
+    else:
+        source_top5 = ColumnDataSource(df_top5)
+        provinces_top5 = df_top5['Provinsi'].tolist()
+        colors_top5 = Category10[5]
+
+        p3 = figure(
+            y_range=provinces_top5[::-1],  # reverse order for top-down bars
+            x_axis_label='Produksi',
+            title=f"Top 5 Rice Production Provinces in {selected_year}",
+            height=400,
+            width=700,
+            tools="pan,wheel_zoom,reset,save"
+        )
+
+        p3.hbar(
+            y='Provinsi',
+            right='Produksi',
+            height=0.6,
+            color=factor_cmap('Provinsi', palette=colors_top5, factors=provinces_top5),
+            source=source_top5
+        )
+
+        hover3 = HoverTool()
+        hover3.tooltips = [
+            ("Province", "@Provinsi"),
+            ("Production", "@Produksi{0,0}"),
+            ("Year", str(selected_year))
+        ]
+        p3.add_tools(hover3)
+
+        p3.xaxis.formatter = NumeralTickFormatter(format="0,0")
+        p3.ygrid.grid_line_color = None
+
+        streamlit_bokeh(p3, use_container_width=True, key="top5_plot")
