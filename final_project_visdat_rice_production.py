@@ -1,8 +1,9 @@
 import pandas as pd
 import streamlit as st
 from bokeh.plotting import figure
-from bokeh.models import HoverTool, ColumnDataSource, CategoricalColorMapper
+from bokeh.models import HoverTool, ColumnDataSource, CategoricalColorMapper, Legend, LegendItem
 import geopandas as gpd
+from streamlit_bokeh import streamlit_bokeh
 
 # Load CSV data and set 'Tahun' as index
 data = pd.read_csv(
@@ -60,15 +61,11 @@ scatter_plot = figure(
 hover = scatter_plot.select_one(HoverTool)
 hover.tooltips = [("Provinsi", "@provinsi"), (x_axis, "@x"), (y_axis, "@y")]
 
-# Bokeh 3.x requires explicitly creating legend items instead of using legend_label in glyphs
-from bokeh.models import Legend, LegendItem
-
-# Prepare scatter glyphs and legend items manually
 renderers = []
 legend_items = []
 
 for prov, color in zip(prov_list, custom_palette):
-    mask = [p == prov for p in source.data['provinsi']]  # fix here
+    mask = [p == prov for p in source.data['provinsi']]
     filtered_source = ColumnDataSource(data={
         'x': [x for i, x in enumerate(source.data['x']) if mask[i]],
         'y': [y for i, y in enumerate(source.data['y']) if mask[i]],
@@ -81,29 +78,20 @@ for prov, color in zip(prov_list, custom_palette):
     renderers.append(r)
     legend_items.append(LegendItem(label=prov, renderers=[r]))
 
-
 legend = Legend(items=legend_items, location="top_right", title="Provinsi")
 scatter_plot.add_layout(legend)
 
-st.bokeh_chart(scatter_plot)
+streamlit_bokeh(scatter_plot, use_container_width=True, theme="streamlit", key="scatter_plot")
 
 # --- Geospatial Map ---
 
 st.header("Geospatial Map for Year 2020")
 
-# Load GeoJSON
 gdf = gpd.read_file("https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia-province.geojson")
-
-# Rename to match your data column
 gdf = gdf.rename(columns={'propinsi': 'Provinsi'})
-
-# Prepare 2020 data for merging
 data_2020 = data.loc[2020].reset_index()
-
-# Merge geodataframe with 2020 data
 gdf_merged = gdf.merge(data_2020, on='Provinsi', how='inner')
 
-# Extract polygon coordinates for patches
 def extract_coords(poly):
     if poly.geom_type == 'MultiPolygon':
         xs = [list(p.exterior.coords.xy[0]) for p in poly.geoms]
@@ -137,4 +125,4 @@ geo_plot.patches(
 geo_hover = geo_plot.select_one(HoverTool)
 geo_hover.tooltips = [("Provinsi", "@Provinsi"), ("Produksi", "@Produksi")]
 
-st.bokeh_chart(geo_plot)
+streamlit_bokeh(geo_plot, use_container_width=True, theme="streamlit", key="geo_map")
