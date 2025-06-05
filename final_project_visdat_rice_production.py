@@ -43,7 +43,7 @@ with tab1:
         title=f"{selected_var} Trends for All Provinces",
         x_axis_label='Year',
         y_axis_label=selected_var,
-        width=900,
+        width=800,
         height=500,
         tools="pan,wheel_zoom,reset,save"
     )
