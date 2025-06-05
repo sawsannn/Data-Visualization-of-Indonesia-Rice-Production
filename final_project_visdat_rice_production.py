@@ -41,8 +41,8 @@ p = figure(
     title=f"Yearly Trends for {province}",
     x_axis_label='Year',
     y_axis_label='Value',
-    plot_width=800,
-    plot_height=500,
+    width=800,
+    height=500,
     tools="pan,wheel_zoom,reset,save"  # Removed box_zoom
 )
 
