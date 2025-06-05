@@ -25,10 +25,13 @@ colors = Category10[len(variables)]
 # Province list for dropdown
 prov_list = data['Provinsi'].unique().tolist()
 
-st.title("Indonesia Rice Production - Interactive Line Plot")
+st.title("Indonesia Rice Production - Line Plot")
 
 # Dropdown to select province
 province = st.selectbox("Select Province:", prov_list)
+
+# Dropdown to select variable (only one line shown)
+selected_var = st.selectbox("Select Variable to Plot:", variables)
 
 # Filter data for chosen province & reset index so 'Tahun' is column
 df_prov = data[data['Provinsi'] == province].reset_index()
@@ -38,24 +41,27 @@ source = ColumnDataSource(df_prov)
 
 # Create Bokeh figure
 p = figure(
-    title=f"Yearly Trends for {province}",
+    title=f"{selected_var} Trend for {province}",
     x_axis_label='Year',
-    y_axis_label='Value',
+    y_axis_label=selected_var,
     width=800,
     height=500,
-    tools="pan,wheel_zoom,reset,save"  # Removed box_zoom
+    tools="pan,wheel_zoom,reset,save"
 )
 
-# Add hover tool with all variables
-tooltips = [("Year", "@Tahun")]
-tooltips += [(var, f"@{{{var}}}") for var in variables]
-hover = HoverTool(tooltips=tooltips)
+# Add hover tool
+hover = HoverTool(tooltips=[
+    ("Year", "@Tahun"),
+    (selected_var, f"@{{{selected_var}}}")
+])
 p.add_tools(hover)
 
-# Plot a line and circle for each variable
-for i, var in enumerate(variables):
-    p.line('Tahun', var, source=source, line_width=2, color=colors[i], legend_label=var)
-    p.circle('Tahun', var, source=source, fill_color="white", size=6, color=colors[i])
+# Get color for selected variable
+color = colors[variables.index(selected_var)]
+
+# Plot single line and circles for selected variable
+p.line('Tahun', selected_var, source=source, line_width=3, color=color, legend_label=selected_var)
+p.circle('Tahun', selected_var, source=source, size=8, fill_color="white", color=color)
 
 p.legend.location = "top_left"
 p.legend.click_policy = "hide"
