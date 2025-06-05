@@ -13,13 +13,11 @@ data.set_index('Tahun', inplace=True)
 # Unique provinces for color mapping
 prov_list = data.Provinsi.unique().tolist()
 
-# Color palette and mapper (make sure palette matches number of provinces)
+# Color palette and mapper
 custom_palette = [
     "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
     "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
 ]
-
-# If provinces > palette, you can extend palette or cut factors, but here it seems okay.
 color_mapper = CategoricalColorMapper(factors=prov_list, palette=custom_palette)
 
 # Rename columns for easier reference
@@ -34,7 +32,6 @@ st.title("Indonesia Rice Production Visualizations")
 
 # --- Scatter Plot ---
 
-# Initial data source for selected year
 def get_source(year, x_col, y_col):
     df = data.loc[year]
     return ColumnDataSource(data={
@@ -63,15 +60,31 @@ scatter_plot = figure(
 hover = scatter_plot.select_one(HoverTool)
 hover.tooltips = [("Provinsi", "@provinsi"), (x_axis, "@x"), (y_axis, "@y")]
 
-# Fix: Use legend_label instead of legend
-scatter_plot.circle(
-    x='x', y='y', source=source, size=10, fill_alpha=0.8,
-    color={'field': 'provinsi', 'transform': color_mapper},
-    legend_label='provinsi'  # <-- must be legend_label
-)
+# Bokeh 3.x requires explicitly creating legend items instead of using legend_label in glyphs
+from bokeh.models import Legend, LegendItem
 
-scatter_plot.legend.location = "top_right"
-scatter_plot.legend.title = "Provinsi"  # This is valid; make sure your bokeh version supports it
+# Prepare scatter glyphs and legend items manually
+renderers = []
+legend_items = []
+
+for prov, color in zip(prov_list, custom_palette):
+    # Filter data for this province
+    mask = source.data['provinsi'] == prov
+    # ColumnDataSource for filtered data
+    filtered_source = ColumnDataSource(data={
+        'x': [x for i, x in enumerate(source.data['x']) if mask[i]],
+        'y': [y for i, y in enumerate(source.data['y']) if mask[i]],
+        'provinsi': [p for i, p in enumerate(source.data['provinsi']) if mask[i]],
+    })
+    r = scatter_plot.circle(
+        'x', 'y', source=filtered_source, size=10,
+        fill_alpha=0.8, color=color
+    )
+    renderers.append(r)
+    legend_items.append(LegendItem(label=prov, renderers=[r]))
+
+legend = Legend(items=legend_items, location="top_right", title="Provinsi")
+scatter_plot.add_layout(legend)
 
 st.bokeh_chart(scatter_plot)
 
