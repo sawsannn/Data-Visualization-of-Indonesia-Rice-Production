@@ -11,15 +11,16 @@ data = pd.read_csv(
 )
 data.set_index('Tahun', inplace=True)
 
-# Rename columns for easier use
-data.rename(columns={
-    'Suhu rata-rata': 'suhu_rata',
-    'Curah hujan': 'curah_hujan',
-    'Luas Panen': 'luas_panen'
-}, inplace=True)
+# # Rename columns for easier use
+# data.rename(columns={
+#     'Suhu rata-rata': 'suhu_rata',
+#     'Curah hujan': 'curah_hujan',
+#     'Luas Panen': 'luas_panen'
+# }, inplace=True)
 
 # Variables to plot
-variables = ['Produksi', 'luas_panen', 'curah_hujan', 'Kelembapan', 'suhu_rata']
+# variables = ['Produksi', 'luas_panen', 'curah_hujan', 'Kelembapan', 'suhu_rata']
+variables = ['Produksi', 'Luas Panen', 'Curah hujan', 'Kelembapan', 'Suhu rata-rata']
 colors = Category10[len(variables)]
 
 # Province list for dropdown
