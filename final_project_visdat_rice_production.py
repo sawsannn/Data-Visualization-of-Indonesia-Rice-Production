@@ -36,7 +36,7 @@ tab1, tab2, tab3 = st.tabs(["All Provinces by Variable", "Single Province by Var
 
 with tab1:
     st.header("Trend of A Feature")
-    st.body("Select one feature to see the trend from 1993 to 2020")
+    st.write("Select one feature to see the trend from 1993 to 2020")
     selected_var = st.selectbox("Select Variable:", variables, key="tab1_var")
 
     p1 = figure(
@@ -69,7 +69,7 @@ with tab1:
 
 with tab2:
     st.header("Trend of A Feature and Province")
-    st.body("Select one feature and one province to see the trend from 1993 to 2020")
+    st.write("Select one feature and one province to see the trend from 1993 to 2020")
     province = st.selectbox("Select Province:", prov_list, key="tab2_prov")
     selected_var_single = st.selectbox("Select Variable:", variables, key="tab2_var")
 
