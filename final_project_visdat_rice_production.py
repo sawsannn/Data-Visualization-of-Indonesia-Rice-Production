@@ -39,7 +39,8 @@ source = ColumnDataSource(data={
 
 # Create the figure: plot
 plot = figure(title='1993', x_axis_label='Jumlah Produksi', y_axis_label='Luas Panen',
-           plot_height=400, plot_width=700, tools=[HoverTool(tooltips='@provinsi')])
+              plot_height=400, plot_width=700, tools='hover')
+plot.add_tools(HoverTool(tooltips=[("Provinsi", "@provinsi")]))
 
 
 # Create the scatter plot
