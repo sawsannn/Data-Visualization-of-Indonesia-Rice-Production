@@ -1,1 +1,5 @@
+snumpy==1.23.5
 bokeh==2.4.3
+streamlit
+pandas
+geopandas
