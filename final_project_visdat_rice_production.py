@@ -4,6 +4,7 @@ from bokeh.plotting import figure
 from bokeh.models import HoverTool, ColumnDataSource
 from bokeh.palettes import Category10
 from streamlit_bokeh import streamlit_bokeh
+from bokeh.models import NumeralTickFormatter
 
 # Load data and set index
 data = pd.read_csv(
@@ -49,6 +50,9 @@ p = figure(
     height=500,
     tools="pan,wheel_zoom,reset,save"
 )
+
+# Format y-axis with commas instead of scientific notation
+p.yaxis.formatter = NumeralTickFormatter(format="0,0")
 
 # Add hover tool
 hover = HoverTool(tooltips=[
