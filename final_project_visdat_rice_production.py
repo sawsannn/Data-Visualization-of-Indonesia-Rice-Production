@@ -46,7 +46,7 @@ plot.add_tools(hover)
 
 # Create the scatter plot
 plot.circle(x='x', y='y', source=source, fill_alpha=0.8,
-           color=dict(field='provinsi', transform=color_mapper), legend='provinsi')
+           color=dict(field='provinsi', transform=color_mapper), legend_label='provinsi')
 
 # Set the legend and axis attributes
 plot.legend.location = 'top_right'
