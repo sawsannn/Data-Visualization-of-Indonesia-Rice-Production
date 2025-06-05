@@ -1,3 +1,4 @@
 streamlit
 bokeh
 pandas
+geopandas
