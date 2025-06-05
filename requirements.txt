@@ -1,5 +1,7 @@
 numpy
 bokeh
+streamlit_bokeh
 streamlit
 pandas
 geopandas
+
