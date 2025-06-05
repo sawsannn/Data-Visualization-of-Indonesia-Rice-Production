@@ -68,7 +68,7 @@ scatter_plot.circle(
 )
 
 scatter_plot.legend.location = "top_right"
-scatter_plot.legend.title = "Provinsi"
+# scatter_plot.legend.title = "Provinsi"
 
 st.bokeh_chart(scatter_plot)
 
