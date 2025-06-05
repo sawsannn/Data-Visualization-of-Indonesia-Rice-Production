@@ -1,4 +1,1 @@
-streamlit
-bokeh
-pandas
-geopandas
+bokeh==2.4.3
