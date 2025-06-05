@@ -32,12 +32,12 @@ palette = Category20[20] if len(prov_list) <= 20 else Category10[10]
 st.title("Sumatera Island Rice Production Visualization")
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs(["All Provinces by Variable", "Single Province by Variable", "Top 5 Provinces by Production Year"])
+tab1, tab2, tab3 = st.tabs(["All Provinces by Feature", "Single Province by Feature", "Top 5 Provinces by Production Year"])
 
 with tab1:
     st.header("Trend of A Feature")
     st.write("Select one feature to see the trend from 1993 to 2020")
-    selected_var = st.selectbox("Select Variable:", variables, key="tab1_var")
+    selected_var = st.selectbox("Select Feature:", variables, key="tab1_var")
 
     p1 = figure(
         title=f"{selected_var} Trends for All Provinces",
@@ -71,7 +71,7 @@ with tab2:
     st.header("Trend of A Feature and Province")
     st.write("Select one feature and one province to see the trend from 1993 to 2020")
     province = st.selectbox("Select Province:", prov_list, key="tab2_prov")
-    selected_var_single = st.selectbox("Select Variable:", variables, key="tab2_var")
+    selected_var_single = st.selectbox("Select Feature:", variables, key="tab2_var")
 
     df_prov_single = data[data['Provinsi'] == province].reset_index()
     source_single = ColumnDataSource(df_prov_single)
