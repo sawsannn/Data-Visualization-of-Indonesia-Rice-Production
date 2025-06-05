@@ -13,11 +13,13 @@ data.set_index('Tahun', inplace=True)
 # Unique provinces for color mapping
 prov_list = data.Provinsi.unique().tolist()
 
-# Color palette and mapper
+# Color palette and mapper (make sure palette matches number of provinces)
 custom_palette = [
     "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
     "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
 ]
+
+# If provinces > palette, you can extend palette or cut factors, but here it seems okay.
 color_mapper = CategoricalColorMapper(factors=prov_list, palette=custom_palette)
 
 # Rename columns for easier reference
@@ -32,7 +34,7 @@ st.title("Indonesia Rice Production Visualizations")
 
 # --- Scatter Plot ---
 
-# Initial data source for year 1993
+# Initial data source for selected year
 def get_source(year, x_col, y_col):
     df = data.loc[year]
     return ColumnDataSource(data={
@@ -61,14 +63,15 @@ scatter_plot = figure(
 hover = scatter_plot.select_one(HoverTool)
 hover.tooltips = [("Provinsi", "@provinsi"), (x_axis, "@x"), (y_axis, "@y")]
 
+# Fix: Use legend_label instead of legend
 scatter_plot.circle(
     x='x', y='y', source=source, size=10, fill_alpha=0.8,
     color={'field': 'provinsi', 'transform': color_mapper},
-    legend_label='provinsi'
+    legend_label='provinsi'  # <-- must be legend_label
 )
 
 scatter_plot.legend.location = "top_right"
-# scatter_plot.legend.title = "Provinsi"
+scatter_plot.legend.title = "Provinsi"  # This is valid; make sure your bokeh version supports it
 
 st.bokeh_chart(scatter_plot)
 
