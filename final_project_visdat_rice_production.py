@@ -29,13 +29,14 @@ prov_list = data['Provinsi'].unique().tolist()
 # Choose palette large enough for provinces
 palette = Category20[20] if len(prov_list) <= 20 else Category10[10]
 
-st.title("Indonesia Rice Production Visualization")
+st.title("Sumatera Island Rice Production Visualization")
 
 # Create tabs
 tab1, tab2, tab3 = st.tabs(["All Provinces by Variable", "Single Province by Variable", "Top 5 Provinces by Production Year"])
 
 with tab1:
-    st.header("All Provinces: Select Variable to Plot")
+    st.header("Trend of A Feature")
+    st.body("Select one feature to see the trend from 1993 to 2020")
     selected_var = st.selectbox("Select Variable:", variables, key="tab1_var")
 
     p1 = figure(
@@ -67,7 +68,8 @@ with tab1:
     streamlit_bokeh(p1, use_container_width=True, key="all_provs_plot")
 
 with tab2:
-    st.header("Single Province: Select Province and Variable")
+    st.header("Trend of A Feature and Province")
+    st.body("Select one feature and one province to see the trend from 1993 to 2020")
     province = st.selectbox("Select Province:", prov_list, key="tab2_prov")
     selected_var_single = st.selectbox("Select Variable:", variables, key="tab2_var")
 
@@ -98,7 +100,7 @@ with tab2:
     streamlit_bokeh(p2, use_container_width=True, key="single_prov_plot")
 
 with tab3:
-    st.header("Top 5 Provinces by Rice Production for Selected Year")
+    st.header("Top 5 Provinces Highest Rice Production Each Year")
 
     # Year slider for tab3
     year_min = int(data.index.min())
