@@ -1,128 +1,138 @@
 import pandas as pd
 import streamlit as st
 from bokeh.plotting import figure
-from bokeh.models import HoverTool, ColumnDataSource, CategoricalColorMapper, Legend, LegendItem
-import geopandas as gpd
+from bokeh.models import HoverTool, ColumnDataSource
+from bokeh.palettes import Category10, Category20
+from bokeh.models import NumeralTickFormatter
+from bokeh.transform import factor_cmap
 from streamlit_bokeh import streamlit_bokeh
 
-# Load CSV data and set 'Tahun' as index
 data = pd.read_csv(
     'https://github.com/sawsannn/Data-Visualization-of-Indonesia-Rice-Production/blob/main/Data_Tanaman_Padi_Sumatera_version_1.csv?raw=true'
 )
 data.set_index('Tahun', inplace=True)
 
-# Unique provinces for color mapping
-prov_list = data.Provinsi.unique().tolist()
+# Variables
+variables = ['Produksi', 'Luas Panen', 'Curah hujan', 'Kelembapan', 'Suhu rata-rata']
 
-# Color palette and mapper
-custom_palette = [
-    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
-]
-color_mapper = CategoricalColorMapper(factors=prov_list, palette=custom_palette)
+# Province list
+prov_list = data['Provinsi'].unique().tolist()
+palette = Category20[20] if len(prov_list) <= 20 else Category10[10]
 
-# Rename columns for easier reference
-data.rename(columns={
-    'Suhu rata-rata': 'suhu_rata',
-    'Curah hujan': 'curah_hujan',
-    'Luas Panen': 'luas_panen'
-}, inplace=True)
+st.title("Sumatera Island Rice Production Visualization")
 
-# Streamlit header
-st.title("Indonesia Rice Production Visualizations")
+tab1, tab2, tab3 = st.tabs(["All Provinces by Feature", "Single Province by Feature", "Top 5 Provinces with Highest Rice Production by Year"])
 
-# --- Scatter Plot ---
+with tab1:
+    st.header("Trend of A Feature")
+    st.write("Select one feature to see the trend from 1993 to 2020")
+    selected_var = st.selectbox("Select Feature:", variables, key="tab1_var")
 
-def get_source(year, x_col, y_col):
-    df = data.loc[year]
-    return ColumnDataSource(data={
-        'x': df[x_col],
-        'y': df[y_col],
-        'provinsi': df['Provinsi']
-    })
-
-# Widgets
-st.header("Scatter Plot Controls")
-year = st.slider('Year', min_value=1993, max_value=2020, value=1993, step=1)
-x_axis = st.selectbox('X-axis data', ['Produksi', 'luas_panen', 'curah_hujan', 'Kelembapan', 'suhu_rata'], index=0)
-y_axis = st.selectbox('Y-axis data', ['Produksi', 'luas_panen', 'curah_hujan', 'Kelembapan', 'suhu_rata'], index=1)
-
-source = get_source(year, x_axis, y_axis)
-
-scatter_plot = figure(
-    title=f'Year: {year}',
-    x_axis_label=x_axis,
-    y_axis_label=y_axis,
-    height=400,
-    width=700,
-    tools="pan,wheel_zoom,reset,hover"
-)
-
-hover = scatter_plot.select_one(HoverTool)
-hover.tooltips = [("Provinsi", "@provinsi"), (x_axis, "@x"), (y_axis, "@y")]
-
-renderers = []
-legend_items = []
-
-for prov, color in zip(prov_list, custom_palette):
-    mask = [p == prov for p in source.data['provinsi']]
-    filtered_source = ColumnDataSource(data={
-        'x': [x for i, x in enumerate(source.data['x']) if mask[i]],
-        'y': [y for i, y in enumerate(source.data['y']) if mask[i]],
-        'provinsi': [p for i, p in enumerate(source.data['provinsi']) if mask[i]],
-    })
-    r = scatter_plot.circle(
-        'x', 'y', source=filtered_source, size=10,
-        fill_alpha=0.8, color=color
+    p1 = figure(
+        title=f"{selected_var} Trends for All Provinces",
+        x_axis_label='Year',
+        y_axis_label=selected_var,
+        width=800,
+        height=500,
+        tools="pan,wheel_zoom,reset,save"
     )
-    renderers.append(r)
-    legend_items.append(LegendItem(label=prov, renderers=[r]))
+    p1.yaxis.formatter = NumeralTickFormatter(format="0,0")
+    hover1 = HoverTool(tooltips=[("Year", "@x"), ("Province", "@provinsi"), (selected_var, "@y")])
+    p1.add_tools(hover1)
 
-legend = Legend(items=legend_items, location="top_right", title="Provinsi")
-scatter_plot.add_layout(legend)
+    for i, prov in enumerate(prov_list):
+        df_prov = data[data['Provinsi'] == prov].reset_index()
+        source = ColumnDataSource(data={
+            'x': df_prov['Tahun'],
+            'y': df_prov[selected_var],
+            'provinsi': [prov]*len(df_prov)
+        })
+        color = palette[i % len(palette)]
+        p1.line('x', 'y', source=source, line_width=2, color=color, legend_label=prov)
+        p1.circle('x', 'y', source=source, size=6, color=color, fill_color="white")
 
-streamlit_bokeh(scatter_plot, use_container_width=True, theme="streamlit", key="scatter_plot")
+    p1.legend.location = "top_left"
+    p1.legend.click_policy = "hide"
 
-# --- Geospatial Map ---
+    streamlit_bokeh(p1, use_container_width=True, key="all_provs_plot")
 
-st.header("Geospatial Map for Year 2020")
+with tab2:
+    st.header("Trend of A Feature and Province")
+    st.write("Select one feature and one province to see the trend from 1993 to 2020")
+    province = st.selectbox("Select Province:", prov_list, key="tab2_prov")
+    selected_var_single = st.selectbox("Select Feature:", variables, key="tab2_var")
 
-gdf = gpd.read_file("https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia-province.geojson")
-gdf = gdf.rename(columns={'propinsi': 'Provinsi'})
-data_2020 = data.loc[2020].reset_index()
-gdf_merged = gdf.merge(data_2020, on='Provinsi', how='inner')
+    df_prov_single = data[data['Provinsi'] == province].reset_index()
+    source_single = ColumnDataSource(df_prov_single)
 
-def extract_coords(poly):
-    if poly.geom_type == 'MultiPolygon':
-        xs = [list(p.exterior.coords.xy[0]) for p in poly.geoms]
-        ys = [list(p.exterior.coords.xy[1]) for p in poly.geoms]
+    p2 = figure(
+        title=f"{selected_var_single} Trend for {province}",
+        x_axis_label='Year',
+        y_axis_label=selected_var_single,
+        width=800,
+        height=500,
+        tools="pan,wheel_zoom,reset,save"
+    )
+    p2.yaxis.formatter = NumeralTickFormatter(format="0,0")
+
+    hover2 = HoverTool(tooltips=[("Year", "@Tahun"), (selected_var_single, f"@{{{selected_var_single}}}")])
+    p2.add_tools(hover2)
+
+    color_single = Category10[len(variables)][variables.index(selected_var_single)]
+
+    p2.line('Tahun', selected_var_single, source=source_single, line_width=3, color=color_single, legend_label=selected_var_single)
+    p2.circle('Tahun', selected_var_single, source=source_single, size=8, fill_color="white", color=color_single)
+
+    p2.legend.location = "top_left"
+    p2.legend.click_policy = "hide"
+
+    streamlit_bokeh(p2, use_container_width=True, key="single_prov_plot")
+
+with tab3:
+    st.header("Top 5 Provinces with Highest Rice Production Each Year")
+
+    # Year slider 
+    year_min = int(data.index.min())
+    year_max = int(data.index.max())
+    selected_year = st.slider("Select Year:", min_value=year_min, max_value=year_max, value=year_min, key="top5_year")
+
+    # Filter and get top 5 provinces by production for selected year
+    df_year = data.loc[selected_year].reset_index() if selected_year in data.index else pd.DataFrame()
+    df_top5 = df_year.nlargest(5, 'Produksi') if not df_year.empty else pd.DataFrame()
+
+    if df_top5.empty:
+        st.warning("No data available for selected year.")
     else:
-        xs = [list(poly.exterior.coords.xy[0])]
-        ys = [list(poly.exterior.coords.xy[1])]
-    return xs, ys
+        source_top5 = ColumnDataSource(df_top5)
+        provinces_top5 = df_top5['Provinsi'].tolist()
+        colors_top5 = Category10[5]
 
-gdf_merged['x'], gdf_merged['y'] = zip(*gdf_merged.geometry.apply(extract_coords))
+        p3 = figure(
+            y_range=provinces_top5[::-1], 
+            x_axis_label='Produksi',
+            title=f"Top 5 Rice Production Provinces in {selected_year}",
+            height=400,
+            width=700,
+            tools="pan,wheel_zoom,reset,save"
+        )
 
-geo_source = ColumnDataSource(gdf_merged)
+        p3.hbar(
+            y='Provinsi',
+            right='Produksi',
+            height=0.6,
+            color=factor_cmap('Provinsi', palette=colors_top5, factors=provinces_top5),
+            source=source_top5
+        )
 
-geo_plot = figure(
-    title='Peta Produksi Padi per Provinsi (2020)',
-    x_axis_label='Longitude',
-    y_axis_label='Latitude',
-    plot_width=700,
-    plot_height=500,
-    tools='pan,wheel_zoom,reset,hover'
-)
+        hover3 = HoverTool()
+        hover3.tooltips = [
+            ("Province", "@Provinsi"),
+            ("Production", "@Produksi{0,0}"),
+            ("Year", str(selected_year))
+        ]
+        p3.add_tools(hover3)
 
-geo_plot.patches(
-    'x', 'y', source=geo_source,
-    fill_alpha=0.7,
-    fill_color='lightgreen',
-    line_color='black',
-    line_width=0.5
-)
+        p3.xaxis.formatter = NumeralTickFormatter(format="0,0")
+        p3.ygrid.grid_line_color = None
 
-geo_hover = geo_plot.select_one(HoverTool)
-geo_hover.tooltips = [("Provinsi", "@Provinsi"), ("Produksi", "@Produksi")]
-
-streamlit_bokeh(geo_plot, use_container_width=True, theme="streamlit", key="geo_map")
+        streamlit_bokeh(p3, use_container_width=True, key="top5_plot")
