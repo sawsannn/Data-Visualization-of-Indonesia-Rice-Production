@@ -2,7 +2,7 @@
 
 Data Visualization Final Project
 By:
-- Sawsan Setiady (203012320016)
+- Sawsan Setiady (203012320026)
 - Zalfaa Ayudhia (203012320028)
 - Hana Amani (203012320025)
 
